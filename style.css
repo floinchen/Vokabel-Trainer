@@ -1,0 +1,206 @@
+:root {
+  --header: #1e3a8a;
+  --accent: #2563eb;
+  --accent-light: #3b82f6;
+  --text-dark: #1e293b;
+  --muted: #64748b;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+
+/* GLOBAL */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Freundlicher blauer Himmel */
+  background: linear-gradient(
+    to bottom,
+    #7ec8ff 0%,   /* helles Himmelblau */
+    #9dd4ff 40%,  /* weiches Mittelblau */
+    #cfe8ff 75%,  /* sehr sanftes Blau */
+    #ffffff 100%  /* weißer Horizont */
+  );
+  position: relative;
+}
+
+/* WOLKEN */
+.cloud {
+  position: absolute;
+  background: white;
+  border-radius: 50px;
+  opacity: 0.9;
+  filter: blur(1px);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+}
+
+.cloud.c1 { width: 260px; height: 80px;  top: 90px;  left: 120px; }
+.cloud.c2 { width: 300px; height: 90px;  top: 160px; right: 160px; }
+.cloud.c3 { width: 220px; height: 70px;  top: 40px;  right: 340px; }
+.cloud.c4 { width: 320px; height: 100px; top: 260px; left: 200px; }
+.cloud.c5 { width: 260px; height: 80px;  top: 330px; right: 250px; }
+
+/* ZENTRIERTES SPIEL-FENSTER */
+.screen {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(900px, calc(100vw - 32px));
+  height: min(550px, calc(100vh - 32px));
+  border-radius: 20px;
+  overflow: hidden;
+  background: #f9fafb;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+  display: none;
+}
+
+.screen.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+.header {
+  background: var(--header);
+  color: white;
+  padding: 1.5rem;
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+h2 {
+  font-size: 2.4rem;
+  margin-bottom: 1rem;
+  color: var(--text-dark);
+}
+
+p {
+  font-size: 1.3rem;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+
+p.small {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 1rem 2rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.answer-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.answer-row input {
+  padding: 1rem;
+  font-size: 1.3rem;
+  width: 320px;
+  max-width: 100%;
+  border-radius: 999px;
+  border: 2px solid var(--accent-light);
+  outline: none;
+}
+
+.answer-row input:focus {
+  border-color: var(--header);
+}
+
+/* RÜCKMELDUNG richtig / falsch */
+.feedback {
+  min-height: 1.8rem;
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.feedback.correct { color: var(--success); }
+.feedback.wrong   { color: var(--danger); }
+
+.timer {
+  margin-top: 0.5rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.timer.warning {
+  color: var(--danger);
+}
+
+.status {
+  margin-top: 2rem;
+  font-size: 1.4rem;
+  color: var(--text-dark);
+}
+
+.lives {
+  color: var(--danger);
+  font-size: 1.8rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.heart {
+  display: inline-block;
+  margin: 0 0.2rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* verlorenes Herz verschwindet */
+.heart.lost {
+  opacity: 0;
+  transform: scale(0.3);
+}
+
+.csv-fallback {
+  margin-top: 2rem;
+}
+
+.hidden {
+  display: none;
+}

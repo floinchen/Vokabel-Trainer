@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vokabeltrainer – Blauer Himmel</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- WOLKEN -->
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+  <div class="cloud c4"></div>
+  <div class="cloud c5"></div>
+
+  <!-- Startbildschirm -->
+  <div id="start-screen" class="screen active">
+    <div class="header">Vokabeltrainer</div>
+    <div class="content">
+      <h2>Willkommen!</h2>
+      <p>Übersetze die deutschen Begriffe ins Englische und steigere dein Level.</p>
+      <button id="start-btn" disabled>Vokabeln werden geladen...</button>
+
+      <!-- Fallback, falls die CSV nicht automatisch geladen werden kann (z. B. bei file://) -->
+      <div id="csv-fallback" class="csv-fallback hidden">
+        <p class="small">Die Datei <strong>vokabeln.csv</strong> konnte nicht automatisch geladen werden.<br />
+          Bitte wähle sie manuell aus:</p>
+        <input type="file" id="csv-input" accept=".csv" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Spielbildschirm -->
+  <div id="game-screen" class="screen">
+    <div class="header" id="level-header">Level 0</div>
+    <div class="content">
+      <h2 id="word">–</h2>
+      <p>Übersetze das Wort ins Englische</p>
+
+      <form id="answer-form" class="answer-row" autocomplete="off">
+        <input type="text" id="answer-input" maxlength="30"
+               placeholder="Englische Übersetzung eingeben..." />
+        <button type="submit" id="check-btn">Prüfen</button>
+      </form>
+
+      <div id="feedback" class="feedback"></div>
+      <div class="timer" id="timer">Zeit: 20 s</div>
+
+      <div class="status">
+        <div>Punkte: <span id="points">0</span> / 100</div>
+        <div>Level: <span id="level">0</span></div>
+        <div class="lives" id="lives"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game-Over-Bildschirm -->
+  <div id="gameover-screen" class="screen">
+    <div class="header">Game Over</div>
+    <div class="content">
+      <h2>Du beginnst neu</h2>
+      <p>Du hast alle 3 Leben verloren. Punkte und Level wurden zurückgesetzt.</p>
+      <div class="status">
+        <div>Punkte: 0</div>
+        <div>Level: 0</div>
+        <div class="lives">
+          <span class="heart">♥</span><span class="heart">♥</span><span class="heart">♥</span>
+        </div>
+      </div>
+      <button id="retry-btn">Wiederholen</button>
+    </div>
+  </div>
+
+  <!-- Endbildschirm (Level 5 erreicht) -->
+  <div id="win-screen" class="screen">
+    <div class="header">Gratulation!</div>
+    <div class="content">
+      <h2>Du hast das letzte Level erreicht!</h2>
+      <p>Großartig – du hast alle Level des Vokabeltrainers gemeistert.</p>
+      <button id="restart-btn">Neustart</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
