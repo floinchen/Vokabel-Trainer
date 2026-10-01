@@ -58,7 +58,7 @@ const state = {
   language: "en",             // gewählte Lernsprache (Schlüssel aus LANGUAGES)
   answers: [],                // richtige Übersetzungen der aktuellen Vokabel
   points: 0,
-  level: 0,
+  level: 4,
   lives: START_LIVES,
   solved: new Set(),          // IDs bereits korrekt übersetzter Vokabeln (FR-13)
   current: null,              // aktuell angezeigte Vokabel
