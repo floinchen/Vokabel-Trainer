@@ -14,19 +14,22 @@ const MAX_LEVEL       = 5;    // FR-08
 const START_LIVES     = 3;    // FR-09
 const TIME_PER_WORD   = 20;   // FR-05 (Sekunden)
 const FEEDBACK_DELAY  = 1500; // Anzeigedauer der Rückmeldung (ms)
+const LEVELUP_DELAY   = 2800; // Anzeigedauer der Level-Animation (ms)
+const FLAG_URL        = "https://flagcdn.com/"; // Flaggenbilder (kostenlos, ohne Key)
 
 // ---------- Lernsprachen ----------
-// name = Anzeige im Spiel ("ins Englische"), articles = werden vor dem Vergleich entfernt
+// label = Text unter der Flagge, name = Anzeige im Spiel ("ins Englische"),
+// flag = Ländercode für das Flaggenbild, articles = werden vor dem Vergleich entfernt
 const LANGUAGES = {
-  en: { name: "Englische",       articles: ["the", "a", "an", "to"] },
-  fr: { name: "Französische",    articles: ["le", "la", "les", "l'", "un", "une", "des"] },
-  es: { name: "Spanische",       articles: ["el", "la", "los", "las", "un", "una"] },
-  it: { name: "Italienische",    articles: ["il", "lo", "la", "i", "gli", "le", "l'", "un", "uno", "una"] },
-  pt: { name: "Portugiesische",  articles: ["o", "a", "os", "as", "um", "uma"] },
-  nl: { name: "Niederländische", articles: ["de", "het", "een"] },
-  sv: { name: "Schwedische",     articles: ["en", "ett", "att"] },
-  pl: { name: "Polnische",       articles: [] },
-  tr: { name: "Türkische",       articles: ["bir"] }
+  en: { label: "Englisch",       name: "Englische",       flag: "gb", articles: ["the", "a", "an", "to"] },
+  fr: { label: "Französisch",    name: "Französische",    flag: "fr", articles: ["le", "la", "les", "l'", "un", "une", "des"] },
+  es: { label: "Spanisch",       name: "Spanische",       flag: "es", articles: ["el", "la", "los", "las", "un", "una"] },
+  it: { label: "Italienisch",    name: "Italienische",    flag: "it", articles: ["il", "lo", "la", "i", "gli", "le", "l'", "un", "uno", "una"] },
+  pt: { label: "Portugiesisch",  name: "Portugiesische",  flag: "pt", articles: ["o", "a", "os", "as", "um", "uma"] },
+  nl: { label: "Niederländisch", name: "Niederländische", flag: "nl", articles: ["de", "het", "een"] },
+  sv: { label: "Schwedisch",     name: "Schwedische",     flag: "se", articles: ["en", "ett", "att"] },
+  pl: { label: "Polnisch",       name: "Polnische",       flag: "pl", articles: [] },
+  tr: { label: "Türkisch",       name: "Türkische",       flag: "tr", articles: ["bir"] }
 };
 
 // ---------- Wortlisten (Index = Level) ----------
@@ -69,7 +72,7 @@ const el = {
   startBtn:    $("start-btn"),
   retryBtn:    $("retry-btn"),
   restartBtn:  $("restart-btn"),
-  langSelect:  $("language-select"),
+  langGrid:    $("language-grid"),
   intro:       $("intro-text"),
   levelHeader: $("level-header"),
   word:        $("word"),
@@ -80,8 +83,13 @@ const el = {
   feedback:    $("feedback"),
   timer:       $("timer"),
   points:      $("points"),
+  progress:    $("progress-fill"),
   level:       $("level"),
-  lives:       $("lives")
+  lives:       $("lives"),
+  levelup:     $("levelup"),
+  levelupTitle: $("levelup-title"),
+  levelupText: $("levelup-text"),
+  confetti:    $("confetti")
 };
 
 // =========================================================
@@ -303,9 +311,17 @@ async function handleAnswer(answer) {
     showFeedback(levelUp ? "Richtig! Level " + state.level + " erreicht!" : "Richtig! +10 Punkte", true);
     renderStatus();
 
-    // Algorithmus 3: Beendigung bei Level 5
-    if (state.level >= MAX_LEVEL) {
-      setTimeout(showWin, FEEDBACK_DELAY);
+    if (levelUp) {
+      showLevelUp(state.level);
+      // Algorithmus 3: Beendigung bei Level 5
+      if (state.level >= MAX_LEVEL) {
+        setTimeout(showWin, LEVELUP_DELAY);
+      } else {
+        setTimeout(() => {
+          hideLevelUp();
+          showNextWord();
+        }, LEVELUP_DELAY);
+      }
       return;
     }
   } else {
@@ -341,6 +357,7 @@ function renderStatus() {
   el.levelHeader.textContent = "Level " + Math.min(state.level, MAX_LEVEL);
   el.level.textContent = state.level;
   el.points.textContent = state.points;
+  el.progress.style.width = (state.points / POINTS_PER_LEVEL * 100) + "%";
 
   // Herzen verschwinden von rechts nach links
   el.lives.innerHTML = "";
@@ -353,16 +370,55 @@ function renderStatus() {
 }
 
 // =========================================================
+// Level-Aufstieg (Animation)
+// =========================================================
+
+const CONFETTI_COLORS = ["#2563eb", "#3b82f6", "#16a34a", "#facc15", "#f97316", "#ec4899"];
+
+function showLevelUp(level) {
+  el.levelupTitle.textContent = "Level " + level + "!";
+  el.levelupText.textContent = level >= MAX_LEVEL
+    ? "Du hast alle Level geschafft!"
+    : "Weiter so – jetzt wird's schwieriger!";
+
+  // Konfetti erzeugen
+  el.confetti.innerHTML = "";
+  for (let i = 0; i < 60; i++) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "%";
+    piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    piece.style.animationDelay = Math.random() * 0.6 + "s";
+    piece.style.animationDuration = 1.8 + Math.random() * 1.2 + "s";
+    piece.style.transform = "rotate(" + Math.random() * 360 + "deg)";
+    el.confetti.appendChild(piece);
+  }
+
+  el.levelup.classList.remove("hidden");
+  // Animation des Headers neu starten
+  el.levelHeader.classList.remove("flash");
+  void el.levelHeader.offsetWidth;
+  el.levelHeader.classList.add("flash");
+}
+
+function hideLevelUp() {
+  el.levelup.classList.add("hidden");
+  el.confetti.innerHTML = "";
+}
+
+// =========================================================
 // Algorithmus 3 + 4: Spielende & Neustart
 // =========================================================
 
 function showWin() {
   stopTimer();
+  hideLevelUp();
   showScreen("win-screen");
 }
 
 function resetGame() {
   stopTimer();
+  hideLevelUp();
   state.points = 0;
   state.level = 0;
   state.lives = START_LIVES;
@@ -403,12 +459,41 @@ el.retryBtn.addEventListener("click", () => {
 // Algorithmus 4: "Neustart" nach dem letzten Level
 el.restartBtn.addEventListener("click", startGame);
 
-// Sprachauswahl am Startbildschirm
-el.langSelect.addEventListener("change", () => setLanguage(el.langSelect.value));
+// =========================================================
+// Sprachauswahl am Startbildschirm (Flaggen-Buttons)
+// =========================================================
+
+function renderLanguageButtons() {
+  for (const [code, lang] of Object.entries(LANGUAGES)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "lang-btn";
+    btn.dataset.lang = code;
+
+    const flag = document.createElement("img");
+    flag.src = FLAG_URL + "w80/" + lang.flag + ".png";
+    flag.srcset = FLAG_URL + "w160/" + lang.flag + ".png 2x";
+    flag.alt = "";
+    flag.width = 64;
+    flag.height = 43;
+
+    const label = document.createElement("span");
+    label.textContent = lang.label;
+
+    btn.append(flag, label);
+    btn.addEventListener("click", () => setLanguage(code));
+    el.langGrid.appendChild(btn);
+  }
+}
 
 /** Übernimmt die Lernsprache und passt die Texte an ("ins Englische" usw.). */
 function setLanguage(lang) {
   state.language = lang;
+  el.langGrid.querySelectorAll(".lang-btn").forEach((btn) => {
+    const selected = btn.dataset.lang === lang;
+    btn.classList.toggle("selected", selected);
+    btn.setAttribute("aria-pressed", selected);
+  });
   const name = LANGUAGES[lang].name;
   el.intro.textContent = "Übersetze die deutschen Begriffe ins " + name + " und steigere dein Level.";
   el.task.textContent = "Übersetze das Wort ins " + name;
@@ -416,5 +501,6 @@ function setLanguage(lang) {
 }
 
 // ---------- Initialisierung ----------
-setLanguage(el.langSelect.value);
+renderLanguageButtons();
+setLanguage(state.language);
 renderStatus();

@@ -21,20 +21,9 @@
       <h2>Willkommen!</h2>
       <p id="intro-text">Übersetze die deutschen Begriffe ins Englische und steigere dein Level.</p>
 
-      <div class="language-row">
-        <label for="language-select">Ich möchte lernen:</label>
-        <select id="language-select">
-          <option value="en">Englisch</option>
-          <option value="fr">Französisch</option>
-          <option value="es">Spanisch</option>
-          <option value="it">Italienisch</option>
-          <option value="pt">Portugiesisch</option>
-          <option value="nl">Niederländisch</option>
-          <option value="sv">Schwedisch</option>
-          <option value="pl">Polnisch</option>
-          <option value="tr">Türkisch</option>
-        </select>
-      </div>
+      <div class="language-label">Ich möchte lernen:</div>
+      <!-- Flaggen-Buttons werden in script.js aus LANGUAGES erzeugt -->
+      <div id="language-grid" class="language-grid"></div>
 
       <button id="start-btn">Spiel starten</button>
       <p class="small">Übersetzungen von der kostenlosen
@@ -61,8 +50,20 @@
 
       <div class="status">
         <div>Punkte: <span id="points">0</span> / 100</div>
+        <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
         <div>Level: <span id="level">0</span></div>
         <div class="lives" id="lives"></div>
+      </div>
+    </div>
+
+    <!-- Overlay beim Erreichen eines neuen Levels -->
+    <div id="levelup" class="levelup hidden">
+      <div id="confetti" class="confetti"></div>
+      <div class="levelup-badge">
+        <div class="levelup-star">★</div>
+        <div class="levelup-small">Level geschafft!</div>
+        <div class="levelup-title" id="levelup-title">Level 1!</div>
+        <div class="levelup-text" id="levelup-text">Weiter so!</div>
       </div>
     </div>
   </div>
