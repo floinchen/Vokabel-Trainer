@@ -84,10 +84,7 @@ const el = {
   feedback:    $("feedback"),
   solution:    $("solution"),
   solutionTitle: $("solution-title"),
-  solutionGiven: $("solution-given"),
-  solutionGerman: $("solution-german"),
   solutionWord: $("solution-word"),
-  solutionMore: $("solution-more"),
   timer:       $("timer"),
   points:      $("points"),
   progress:    $("progress-fill"),
@@ -335,7 +332,7 @@ async function handleAnswer(answer) {
   } else {
     // inkorrekt: ein Leben weniger (Leben regenerieren sich beim Levelaufstieg nicht)
     state.lives--;
-    showSolution(answer, vocab);
+    showSolution(answer);
     renderStatus();
 
     // Algorithmus 5: alle Leben verloren
@@ -358,33 +355,19 @@ function showFeedback(text, correct) {
   el.feedback.className = "feedback " + (correct ? "correct" : "wrong");
 }
 
-/** Zeigt die Lösungskarte: eigene Eingabe durchgestrichen, richtiges Wort groß. */
-function showSolution(answer, vocab) {
+/** Zeigt bei falscher Antwort einen kleinen Hinweis und das richtige Wort groß. */
+function showSolution(answer) {
   el.feedback.textContent = "";
   el.feedback.className = "feedback hidden";
   el.timer.classList.add("hidden");
 
-  el.solutionTitle.textContent = answer === null ? "Zeit abgelaufen!" : "Leider falsch!";
-  el.solutionGiven.textContent = answer === null ? "" : answer.trim();
-  el.solutionGiven.classList.toggle("hidden", answer === null);
-  el.solutionGerman.textContent = vocab.german;
+  el.solutionTitle.textContent = answer === null ? "Zeit abgelaufen" : "Leider falsch";
   el.solutionWord.textContent = state.answers[0];
-
-  const others = state.answers.slice(1, 4);
-  el.solutionMore.textContent = others.length > 0 ? "Auch richtig: " + others.join(", ") : "";
-
-  // Animation bei jedem Anzeigen neu starten
-  el.solution.classList.add("hidden");
-  void el.solution.offsetWidth;
   el.solution.classList.remove("hidden");
-  el.form.classList.remove("shake");
-  void el.form.offsetWidth;
-  el.form.classList.add("shake");
 }
 
 function hideSolution() {
   el.solution.classList.add("hidden");
-  el.form.classList.remove("shake");
   el.feedback.className = "feedback";
   el.timer.classList.remove("hidden");
 }
