@@ -11,6 +11,7 @@ const API_URL         = "https://api.mymemory.translated.net/get";
 const POINTS_PER_WORD = 10;   // FR-06
 const POINTS_PER_LEVEL = 100; // FR-07
 const MAX_LEVEL       = 5;    // FR-08
+const START_LEVEL     = 4;    // Startlevel (zum Testen; normal 0)
 const START_LIVES     = 3;    // FR-09
 const TIME_PER_WORD   = 20;   // FR-05 (Sekunden)
 const FEEDBACK_DELAY  = 1000; // Anzeigedauer der Rückmeldung bei richtiger Antwort (ms)
@@ -58,7 +59,7 @@ const state = {
   language: "en",             // gewählte Lernsprache (Schlüssel aus LANGUAGES)
   answers: [],                // richtige Übersetzungen der aktuellen Vokabel
   points: 0,
-  level: 4,
+  level: 0,
   lives: START_LIVES,
   solved: new Set(),          // IDs bereits korrekt übersetzter Vokabeln (FR-13)
   current: null,              // aktuell angezeigte Vokabel
@@ -444,7 +445,7 @@ function resetGame() {
   hideLevelUp();
   hideSolution();
   state.points = 0;
-  state.level = 0;
+  state.level = START_LEVEL;
   state.lives = START_LIVES;
   state.solved.clear();  // nach einem Reset dürfen alle Vokabeln wieder vorkommen
   state.current = null;
