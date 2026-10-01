@@ -261,6 +261,98 @@ button:disabled {
   transform: scale(0.3);
 }
 
+/* LÖSUNGSKARTE bei falscher Antwort */
+.solution {
+  margin-top: 1rem;
+  padding: 0.9rem 2rem 1rem;
+  min-width: min(420px, 100%);
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  border-left: 8px solid var(--danger);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.15);
+  animation: solution-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.solution-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.solution-given {
+  margin-top: 0.2rem;
+  font-size: 1.1rem;
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 2px;
+}
+
+.solution-label {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.solution-answer {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.solution-german {
+  font-size: 1.3rem;
+  color: var(--text-dark);
+}
+
+.solution-arrow {
+  font-size: 1.3rem;
+  color: var(--muted);
+}
+
+.solution-word {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: var(--success);
+  background: #dcfce7;
+  padding: 0 0.6rem;
+  border-radius: 10px;
+}
+
+.solution-more {
+  margin-top: 0.3rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.solution-more:empty {
+  display: none;
+}
+
+/* Eingabezeile wackelt bei falscher Antwort */
+.answer-row.shake {
+  animation: shake 0.45s ease;
+}
+
+@keyframes solution-in {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-10px); }
+  40%      { transform: translateX(10px); }
+  60%      { transform: translateX(-6px); }
+  80%      { transform: translateX(6px); }
+}
+
 /* FORTSCHRITTSBALKEN bis zum nächsten Level */
 .progress {
   width: 260px;
@@ -387,6 +479,7 @@ button:disabled {
 
 /* weniger Bewegung, wenn im System so eingestellt */
 @media (prefers-reduced-motion: reduce) {
-  .levelup, .levelup-badge, .levelup-star, .header.flash { animation: none; }
+  .levelup, .levelup-badge, .levelup-star, .header.flash,
+  .solution, .answer-row.shake { animation: none; }
   .confetti { display: none; }
 }

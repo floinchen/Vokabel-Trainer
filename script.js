@@ -14,6 +14,7 @@ const MAX_LEVEL       = 5;    // FR-08
 const START_LIVES     = 3;    // FR-09
 const TIME_PER_WORD   = 20;   // FR-05 (Sekunden)
 const FEEDBACK_DELAY  = 1500; // Anzeigedauer der Rückmeldung (ms)
+const SOLUTION_DELAY  = 3200; // Anzeigedauer der Lösung bei falscher Antwort (ms)
 const LEVELUP_DELAY   = 2800; // Anzeigedauer der Level-Animation (ms)
 const FLAG_URL        = "https://flagcdn.com/"; // Flaggenbilder (kostenlos, ohne Key)
 
@@ -81,6 +82,12 @@ const el = {
   input:       $("answer-input"),
   checkBtn:    $("check-btn"),
   feedback:    $("feedback"),
+  solution:    $("solution"),
+  solutionTitle: $("solution-title"),
+  solutionGiven: $("solution-given"),
+  solutionGerman: $("solution-german"),
+  solutionWord: $("solution-word"),
+  solutionMore: $("solution-more"),
   timer:       $("timer"),
   points:      $("points"),
   progress:    $("progress-fill"),
@@ -224,6 +231,7 @@ async function showNextWord() {
   state.current = next;
   state.locked = true;
 
+  hideSolution();
   el.word.textContent = next.german;
   el.input.value = "";
   el.input.disabled = true;
@@ -327,8 +335,7 @@ async function handleAnswer(answer) {
   } else {
     // inkorrekt: ein Leben weniger (Leben regenerieren sich beim Levelaufstieg nicht)
     state.lives--;
-    const prefix = answer === null ? "Zeit abgelaufen! " : "Leider falsch! ";
-    showFeedback(prefix + "Richtig wäre: " + state.answers[0], false);
+    showSolution(answer, vocab);
     renderStatus();
 
     // Algorithmus 5: alle Leben verloren
@@ -336,9 +343,11 @@ async function handleAnswer(answer) {
       setTimeout(() => {
         resetGame();
         showScreen("gameover-screen");
-      }, FEEDBACK_DELAY);
+      }, SOLUTION_DELAY);
       return;
     }
+    setTimeout(showNextWord, SOLUTION_DELAY);
+    return;
   }
 
   setTimeout(showNextWord, FEEDBACK_DELAY);
@@ -347,6 +356,37 @@ async function handleAnswer(answer) {
 function showFeedback(text, correct) {
   el.feedback.textContent = text;
   el.feedback.className = "feedback " + (correct ? "correct" : "wrong");
+}
+
+/** Zeigt die Lösungskarte: eigene Eingabe durchgestrichen, richtiges Wort groß. */
+function showSolution(answer, vocab) {
+  el.feedback.textContent = "";
+  el.feedback.className = "feedback hidden";
+  el.timer.classList.add("hidden");
+
+  el.solutionTitle.textContent = answer === null ? "Zeit abgelaufen!" : "Leider falsch!";
+  el.solutionGiven.textContent = answer === null ? "" : answer.trim();
+  el.solutionGiven.classList.toggle("hidden", answer === null);
+  el.solutionGerman.textContent = vocab.german;
+  el.solutionWord.textContent = state.answers[0];
+
+  const others = state.answers.slice(1, 4);
+  el.solutionMore.textContent = others.length > 0 ? "Auch richtig: " + others.join(", ") : "";
+
+  // Animation bei jedem Anzeigen neu starten
+  el.solution.classList.add("hidden");
+  void el.solution.offsetWidth;
+  el.solution.classList.remove("hidden");
+  el.form.classList.remove("shake");
+  void el.form.offsetWidth;
+  el.form.classList.add("shake");
+}
+
+function hideSolution() {
+  el.solution.classList.add("hidden");
+  el.form.classList.remove("shake");
+  el.feedback.className = "feedback";
+  el.timer.classList.remove("hidden");
 }
 
 // =========================================================
@@ -419,6 +459,7 @@ function showWin() {
 function resetGame() {
   stopTimer();
   hideLevelUp();
+  hideSolution();
   state.points = 0;
   state.level = 0;
   state.lives = START_LIVES;
