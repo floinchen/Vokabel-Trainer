@@ -13,8 +13,8 @@ const POINTS_PER_LEVEL = 100; // FR-07
 const MAX_LEVEL       = 5;    // FR-08
 const START_LIVES     = 3;    // FR-09
 const TIME_PER_WORD   = 20;   // FR-05 (Sekunden)
-const FEEDBACK_DELAY  = 1500; // Anzeigedauer der Rückmeldung (ms)
-const SOLUTION_DELAY  = 3200; // Anzeigedauer der Lösung bei falscher Antwort (ms)
+const FEEDBACK_DELAY  = 1000; // Anzeigedauer der Rückmeldung bei richtiger Antwort (ms)
+const SOLUTION_DELAY  = 4000; // Anzeigedauer der Lösung bei falscher Antwort (ms)
 const LEVELUP_DELAY   = 2800; // Anzeigedauer der Level-Animation (ms)
 const FLAG_URL        = "https://flagcdn.com/"; // Flaggenbilder (kostenlos, ohne Key)
 
