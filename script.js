@@ -1,12 +1,12 @@
 /* =========================================================
    Vokabeltrainer – Spiellogik
-   Vokabeln werden aus "vokabeln.csv" geladen
-   (Format: level;deutsch;englisch – mehrere richtige
-   Antworten mit "|" trennen, z. B. "street|road")
+   Die deutschen Wörter stehen pro Level in WORDS, die
+   englischen Übersetzungen kommen live von der kostenlosen
+   MyMemory-API (https://mymemory.translated.net, ohne API-Key)
    ========================================================= */
 
 // ---------- Konstanten ----------
-const CSV_FILE        = "vokabeln.csv";
+const API_URL         = "https://api.mymemory.translated.net/get";
 const POINTS_PER_WORD = 10;   // FR-06
 const POINTS_PER_LEVEL = 100; // FR-07
 const MAX_LEVEL       = 5;    // FR-08
@@ -14,8 +14,27 @@ const START_LIVES     = 3;    // FR-09
 const TIME_PER_WORD   = 20;   // FR-05 (Sekunden)
 const FEEDBACK_DELAY  = 1500; // Anzeigedauer der Rückmeldung (ms)
 
+// ---------- Wortlisten (Index = Level) ----------
+const WORDS = [
+  ["Haus", "Hund", "Katze", "Baum", "Buch", "Wasser", "Sonne", "Tisch", "Auto", "Apfel",
+   "Milch", "Rot", "Mutter", "Vater", "Schule"],
+  ["Fenster", "Stuhl", "Schlüssel", "Vogel", "Zug", "Wolke", "Brücke", "Küche", "Pferd", "Straße",
+   "Geschenk", "Freund", "Frühstück", "Kirche", "Himmel"],
+  ["Flughafen", "Rechnung", "Nachbar", "Wissen", "Erfahrung", "Gesundheit", "Umwelt", "Wetter",
+   "Zahnarzt", "Versuch", "Gebäude", "Wettbewerb", "Geschwindigkeit", "Unterricht", "Verkehr"],
+  ["Entscheidung", "Verantwortung", "Gleichgewicht", "Herausforderung", "Zuverlässigkeit",
+   "Anforderung", "Vertrauen", "Beziehung", "Voraussetzung", "Wahrscheinlichkeit", "Gewissen",
+   "Bewerbung", "Schwierigkeit", "Vorurteil", "Nachhaltigkeit"],
+  ["Eichhörnchen", "Rücksichtslos", "Gleichgültigkeit", "Beharrlichkeit", "Zweideutig",
+   "Unentbehrlich", "Vergänglichkeit", "Gewährleistung", "Selbstgefällig", "Zwangsläufig",
+   "Verschwiegenheit", "Glaubwürdigkeit", "Beeinträchtigung", "Schadenfreude", "Unverzichtbar"]
+];
+
 // ---------- Spielzustand ----------
-let vocabulary = [];          // alle Vokabeln aus der CSV
+const vocabulary = WORDS.flatMap((words, level) =>
+  words.map((german) => ({ id: level + ":" + german, level: level, german: german }))
+);
+const translationCache = new Map(); // "langpair:wort" -> Liste von Übersetzungen
 const state = {
   points: 0,
   level: 0,
@@ -33,8 +52,6 @@ const el = {
   startBtn:    $("start-btn"),
   retryBtn:    $("retry-btn"),
   restartBtn:  $("restart-btn"),
-  csvFallback: $("csv-fallback"),
-  csvInput:    $("csv-input"),
   levelHeader: $("level-header"),
   word:        $("word"),
   form:        $("answer-form"),
@@ -48,76 +65,57 @@ const el = {
 };
 
 // =========================================================
-// Data Handling (CSV)
+// Data Handling (Wörterbuch-API)
 // =========================================================
 
-/** Wandelt den CSV-Text in ein Array von Vokabel-Objekten um. */
-function parseCSV(text) {
-  const lines = text
-    .replace(/^﻿/, "")           // BOM entfernen (z. B. aus Excel)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line !== "");
+/**
+ * Fragt die MyMemory-API nach Übersetzungen für ein Wort.
+ * langpair z. B. "de|en". Liefert eine Liste normalisierter Übersetzungen.
+ */
+async function translate(word, langpair) {
+  const key = langpair + ":" + word.toLowerCase();
+  if (translationCache.has(key)) return translationCache.get(key);
 
-  const result = [];
-  // Zeile 0 = Kopfzeile (level;deutsch;englisch)
-  for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split(";");
-    if (parts.length < 3) continue;
-
-    const level   = parseInt(parts[0], 10);
-    const german  = parts[1].trim();
-    const answers = parts[2]
-      .split("|")
-      .map(normalize)
-      .filter((a) => a !== "");
-
-    if (isNaN(level) || german === "" || answers.length === 0) continue;
-
-    result.push({
-      id: i,
-      level: level,
-      german: german,
-      english: answers,
-      display: parts[2].split("|")[0].trim() // für die Anzeige der Lösung
-    });
+  const url = API_URL + "?q=" + encodeURIComponent(word) + "&langpair=" + encodeURIComponent(langpair);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("HTTP " + response.status);
+  const data = await response.json();
+  if (data.responseStatus && Number(data.responseStatus) !== 200) {
+    throw new Error(data.responseDetails || "API-Fehler");
   }
+
+  // Hauptübersetzung + alle Treffer aus dem Übersetzungsspeicher sammeln
+  const candidates = [data.responseData && data.responseData.translatedText]
+    .concat((data.matches || []).map((m) => m.translation));
+
+  const source = normalize(word);
+  const result = [];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const t = cleanTranslation(candidate);
+    // leere, unübersetzte und doppelte Einträge überspringen
+    if (t === "" || t === source || result.includes(t)) continue;
+    result.push(t);
+  }
+
+  translationCache.set(key, result);
   return result;
 }
 
-/** Lädt die CSV automatisch (funktioniert über einen lokalen Webserver). */
-async function loadVocabulary() {
-  try {
-    const response = await fetch(CSV_FILE, { cache: "no-store" });
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    setVocabulary(parseCSV(await response.text()));
-  } catch (err) {
-    // Beim Öffnen per Doppelklick (file://) blockiert der Browser fetch –
-    // dann kann die CSV manuell ausgewählt werden.
-    console.warn("CSV konnte nicht automatisch geladen werden:", err);
-    el.startBtn.textContent = "Spiel starten";
-    el.csvFallback.classList.remove("hidden");
-  }
+/** Entfernt Artikel, "to" bei Verben und Satzzeichen ("The house." -> "house"). */
+function cleanTranslation(text) {
+  return normalize(text)
+    .replace(/[.!?,;:"„“()]/g, "")
+    .replace(/^(the|a|an|to|der|die|das|ein|eine) /, "")
+    .trim();
 }
 
-/** Manuelle Auswahl der CSV-Datei über das Datei-Eingabefeld. */
-el.csvInput.addEventListener("change", () => {
-  const file = el.csvInput.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => setVocabulary(parseCSV(reader.result));
-  reader.readAsText(file, "UTF-8");
-});
-
-function setVocabulary(list) {
-  if (list.length === 0) {
-    alert("Die CSV-Datei enthält keine gültigen Vokabeln.");
-    return;
+/** Lädt die englischen Übersetzungen für eine Vokabel (einmalig, dann aus dem Cache). */
+async function loadAnswers(vocab) {
+  if (!vocab.english) {
+    vocab.english = await translate(vocab.german, "de|en");
   }
-  vocabulary = list;
-  el.csvFallback.classList.add("hidden");
-  el.startBtn.disabled = false;
-  el.startBtn.textContent = "Spiel starten";
+  return vocab.english;
 }
 
 // =========================================================
@@ -137,8 +135,19 @@ function normalize(text) {
   return text.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function isCorrect(answer, vocab) {
-  return vocab.english.includes(normalize(answer));
+async function isCorrect(answer, vocab) {
+  const cleaned = cleanTranslation(answer);
+  if (vocab.english.includes(cleaned)) return true;
+
+  // Rückwärtsprüfung für Synonyme: übersetzt die API die Antwort
+  // zurück ins Deutsche und kommt dabei das gesuchte Wort heraus?
+  try {
+    const backwards = await translate(cleaned, "en|de");
+    return backwards.includes(cleanTranslation(vocab.german));
+  } catch (err) {
+    console.warn("Rückwärtsprüfung fehlgeschlagen:", err);
+    return false;
+  }
 }
 
 // =========================================================
@@ -169,7 +178,7 @@ function pickNextWord() {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function showNextWord() {
+async function showNextWord() {
   const next = pickNextWord();
   if (!next) {
     // keine Vokabeln mehr übrig – als geschafft werten
@@ -177,14 +186,31 @@ function showNextWord() {
     return;
   }
   state.current = next;
-  state.locked = false;
+  state.locked = true;
 
   el.word.textContent = next.german;
   el.input.value = "";
+  el.input.disabled = true;
+  el.checkBtn.disabled = true;
+  el.feedback.textContent = "Übersetzung wird geladen...";
+  el.feedback.className = "feedback";
+
+  try {
+    const answers = await loadAnswers(next);
+    if (answers.length === 0) throw new Error("Keine Übersetzung gefunden");
+  } catch (err) {
+    console.warn("Wörterbuch-API nicht erreichbar:", err);
+    showFeedback("Wörterbuch-API nicht erreichbar – neuer Versuch...", false);
+    setTimeout(showNextWord, FEEDBACK_DELAY * 2);
+    return;
+  }
+  // Spiel wurde während des Ladens beendet/neu gestartet
+  if (state.current !== next) return;
+
+  state.locked = false;
   el.input.disabled = false;
   el.checkBtn.disabled = false;
   el.feedback.textContent = "";
-  el.feedback.className = "feedback";
   el.input.focus();
 
   startTimer();
@@ -224,7 +250,7 @@ function renderTimer() {
 // Algorithmus 2: Level + Leben
 // =========================================================
 
-function handleAnswer(answer) {
+async function handleAnswer(answer) {
   if (state.locked) return;
   state.locked = true;
   stopTimer();
@@ -232,8 +258,9 @@ function handleAnswer(answer) {
   el.checkBtn.disabled = true;
 
   const vocab = state.current;
+  const correct = answer !== null && await isCorrect(answer, vocab);
 
-  if (answer !== null && isCorrect(answer, vocab)) {
+  if (correct) {
     // korrekt: +10 Punkte, bei 100 Punkten Levelaufstieg
     state.solved.add(vocab.id);
     state.points += POINTS_PER_WORD;
@@ -255,7 +282,7 @@ function handleAnswer(answer) {
     // inkorrekt: ein Leben weniger (Leben regenerieren sich beim Levelaufstieg nicht)
     state.lives--;
     const prefix = answer === null ? "Zeit abgelaufen! " : "Leider falsch! ";
-    showFeedback(prefix + "Richtig wäre: " + vocab.display, false);
+    showFeedback(prefix + "Richtig wäre: " + vocab.english[0], false);
     renderStatus();
 
     // Algorithmus 5: alle Leben verloren
@@ -348,4 +375,3 @@ el.restartBtn.addEventListener("click", startGame);
 
 // ---------- Initialisierung ----------
 renderStatus();
-loadVocabulary();
