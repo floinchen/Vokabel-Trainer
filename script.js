@@ -1,8 +1,9 @@
 /* =========================================================
    Vokabeltrainer – Spiellogik
    Die deutschen Wörter stehen pro Level in WORDS, die
-   englischen Übersetzungen kommen live von der kostenlosen
-   MyMemory-API (https://mymemory.translated.net, ohne API-Key)
+   Übersetzungen in die gewählte Sprache kommen live von der
+   kostenlosen MyMemory-API (https://mymemory.translated.net,
+   ohne API-Key)
    ========================================================= */
 
 // ---------- Konstanten ----------
@@ -13,6 +14,20 @@ const MAX_LEVEL       = 5;    // FR-08
 const START_LIVES     = 3;    // FR-09
 const TIME_PER_WORD   = 20;   // FR-05 (Sekunden)
 const FEEDBACK_DELAY  = 1500; // Anzeigedauer der Rückmeldung (ms)
+
+// ---------- Lernsprachen ----------
+// name = Anzeige im Spiel ("ins Englische"), articles = werden vor dem Vergleich entfernt
+const LANGUAGES = {
+  en: { name: "Englische",       articles: ["the", "a", "an", "to"] },
+  fr: { name: "Französische",    articles: ["le", "la", "les", "l'", "un", "une", "des"] },
+  es: { name: "Spanische",       articles: ["el", "la", "los", "las", "un", "una"] },
+  it: { name: "Italienische",    articles: ["il", "lo", "la", "i", "gli", "le", "l'", "un", "uno", "una"] },
+  pt: { name: "Portugiesische",  articles: ["o", "a", "os", "as", "um", "uma"] },
+  nl: { name: "Niederländische", articles: ["de", "het", "een"] },
+  sv: { name: "Schwedische",     articles: ["en", "ett", "att"] },
+  pl: { name: "Polnische",       articles: [] },
+  tr: { name: "Türkische",       articles: ["bir"] }
+};
 
 // ---------- Wortlisten (Index = Level) ----------
 const WORDS = [
@@ -36,6 +51,8 @@ const vocabulary = WORDS.flatMap((words, level) =>
 );
 const translationCache = new Map(); // "langpair:wort" -> Liste von Übersetzungen
 const state = {
+  language: "en",             // gewählte Lernsprache (Schlüssel aus LANGUAGES)
+  answers: [],                // richtige Übersetzungen der aktuellen Vokabel
   points: 0,
   level: 0,
   lives: START_LIVES,
@@ -52,8 +69,11 @@ const el = {
   startBtn:    $("start-btn"),
   retryBtn:    $("retry-btn"),
   restartBtn:  $("restart-btn"),
+  langSelect:  $("language-select"),
+  intro:       $("intro-text"),
   levelHeader: $("level-header"),
   word:        $("word"),
+  task:        $("task-text"),
   form:        $("answer-form"),
   input:       $("answer-input"),
   checkBtn:    $("check-btn"),
@@ -69,10 +89,11 @@ const el = {
 // =========================================================
 
 /**
- * Fragt die MyMemory-API nach Übersetzungen für ein Wort.
- * langpair z. B. "de|en". Liefert eine Liste normalisierter Übersetzungen.
+ * Fragt die MyMemory-API nach Übersetzungen für ein Wort von Sprache
+ * "from" nach "to" (z. B. "de", "fr"). Liefert eine Liste bereinigter Übersetzungen.
  */
-async function translate(word, langpair) {
+async function translate(word, from, to) {
+  const langpair = from + "|" + to;
   const key = langpair + ":" + word.toLowerCase();
   if (translationCache.has(key)) return translationCache.get(key);
 
@@ -91,8 +112,9 @@ async function translate(word, langpair) {
   const source = normalize(word);
   const result = [];
   for (const candidate of candidates) {
-    if (!candidate) continue;
-    const t = cleanTranslation(candidate);
+    // fehlerhafte Einträge aus dem Übersetzungsspeicher (HTML-Codes, Tags, Zahlen) ignorieren
+    if (!candidate || /[<>&#\d]/.test(candidate)) continue;
+    const t = cleanTranslation(candidate, to);
     // leere, unübersetzte und doppelte Einträge überspringen
     if (t === "" || t === source || result.includes(t)) continue;
     result.push(t);
@@ -102,20 +124,25 @@ async function translate(word, langpair) {
   return result;
 }
 
-/** Entfernt Artikel, "to" bei Verben und Satzzeichen ("The house." -> "house"). */
-function cleanTranslation(text) {
-  return normalize(text)
-    .replace(/[.!?,;:"„“()]/g, "")
-    .replace(/^(the|a|an|to|der|die|das|ein|eine) /, "")
-    .trim();
+const GERMAN_ARTICLES = ["der", "die", "das", "ein", "eine"];
+
+/** Entfernt Artikel der Sprache und Satzzeichen ("The house." -> "house", "l'école" -> "école"). */
+function cleanTranslation(text, lang) {
+  const articles = lang === "de" ? GERMAN_ARTICLES : LANGUAGES[lang].articles;
+  let result = normalize(text).replace(/[.!?,;:"„“«»¿¡()]/g, "").replace(/’/g, "'").trim();
+  for (const article of articles) {
+    const prefix = article.endsWith("'") ? article : article + " ";
+    if (result.startsWith(prefix) && result.length > prefix.length) {
+      result = result.slice(prefix.length).trim();
+      break;
+    }
+  }
+  return result;
 }
 
-/** Lädt die englischen Übersetzungen für eine Vokabel (einmalig, dann aus dem Cache). */
-async function loadAnswers(vocab) {
-  if (!vocab.english) {
-    vocab.english = await translate(vocab.german, "de|en");
-  }
-  return vocab.english;
+/** Vergleichsschlüssel ohne Akzente, damit z. B. "ecole" auch für "école" zählt. */
+function compareKey(text) {
+  return text.normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 // =========================================================
@@ -136,14 +163,15 @@ function normalize(text) {
 }
 
 async function isCorrect(answer, vocab) {
-  const cleaned = cleanTranslation(answer);
-  if (vocab.english.includes(cleaned)) return true;
+  const cleaned = cleanTranslation(answer, state.language);
+  if (state.answers.some((a) => compareKey(a) === compareKey(cleaned))) return true;
 
   // Rückwärtsprüfung für Synonyme: übersetzt die API die Antwort
   // zurück ins Deutsche und kommt dabei das gesuchte Wort heraus?
   try {
-    const backwards = await translate(cleaned, "en|de");
-    return backwards.includes(cleanTranslation(vocab.german));
+    const backwards = await translate(cleaned, state.language, "de");
+    const german = compareKey(cleanTranslation(vocab.german, "de"));
+    return backwards.some((b) => compareKey(b) === german);
   } catch (err) {
     console.warn("Rückwärtsprüfung fehlgeschlagen:", err);
     return false;
@@ -195,8 +223,9 @@ async function showNextWord() {
   el.feedback.textContent = "Übersetzung wird geladen...";
   el.feedback.className = "feedback";
 
+  let answers;
   try {
-    const answers = await loadAnswers(next);
+    answers = await translate(next.german, "de", state.language);
     if (answers.length === 0) throw new Error("Keine Übersetzung gefunden");
   } catch (err) {
     console.warn("Wörterbuch-API nicht erreichbar:", err);
@@ -207,6 +236,7 @@ async function showNextWord() {
   // Spiel wurde während des Ladens beendet/neu gestartet
   if (state.current !== next) return;
 
+  state.answers = answers;
   state.locked = false;
   el.input.disabled = false;
   el.checkBtn.disabled = false;
@@ -282,7 +312,7 @@ async function handleAnswer(answer) {
     // inkorrekt: ein Leben weniger (Leben regenerieren sich beim Levelaufstieg nicht)
     state.lives--;
     const prefix = answer === null ? "Zeit abgelaufen! " : "Leider falsch! ";
-    showFeedback(prefix + "Richtig wäre: " + vocab.english[0], false);
+    showFeedback(prefix + "Richtig wäre: " + state.answers[0], false);
     renderStatus();
 
     // Algorithmus 5: alle Leben verloren
@@ -373,5 +403,18 @@ el.retryBtn.addEventListener("click", () => {
 // Algorithmus 4: "Neustart" nach dem letzten Level
 el.restartBtn.addEventListener("click", startGame);
 
+// Sprachauswahl am Startbildschirm
+el.langSelect.addEventListener("change", () => setLanguage(el.langSelect.value));
+
+/** Übernimmt die Lernsprache und passt die Texte an ("ins Englische" usw.). */
+function setLanguage(lang) {
+  state.language = lang;
+  const name = LANGUAGES[lang].name;
+  el.intro.textContent = "Übersetze die deutschen Begriffe ins " + name + " und steigere dein Level.";
+  el.task.textContent = "Übersetze das Wort ins " + name;
+  el.input.placeholder = name + " Übersetzung eingeben...";
+}
+
 // ---------- Initialisierung ----------
+setLanguage(el.langSelect.value);
 renderStatus();

@@ -19,7 +19,23 @@
     <div class="header">Vokabeltrainer</div>
     <div class="content">
       <h2>Willkommen!</h2>
-      <p>Übersetze die deutschen Begriffe ins Englische und steigere dein Level.</p>
+      <p id="intro-text">Übersetze die deutschen Begriffe ins Englische und steigere dein Level.</p>
+
+      <div class="language-row">
+        <label for="language-select">Ich möchte lernen:</label>
+        <select id="language-select">
+          <option value="en">Englisch</option>
+          <option value="fr">Französisch</option>
+          <option value="es">Spanisch</option>
+          <option value="it">Italienisch</option>
+          <option value="pt">Portugiesisch</option>
+          <option value="nl">Niederländisch</option>
+          <option value="sv">Schwedisch</option>
+          <option value="pl">Polnisch</option>
+          <option value="tr">Türkisch</option>
+        </select>
+      </div>
+
       <button id="start-btn">Spiel starten</button>
       <p class="small">Übersetzungen von der kostenlosen
         <a href="https://mymemory.translated.net" target="_blank" rel="noopener">MyMemory</a>-API
@@ -32,7 +48,7 @@
     <div class="header" id="level-header">Level 0</div>
     <div class="content">
       <h2 id="word">–</h2>
-      <p>Übersetze das Wort ins Englische</p>
+      <p id="task-text">Übersetze das Wort ins Englische</p>
 
       <form id="answer-form" class="answer-row" autocomplete="off">
         <input type="text" id="answer-input" maxlength="30"

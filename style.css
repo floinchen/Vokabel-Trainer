@@ -109,6 +109,33 @@ p.small {
   margin-bottom: 0.75rem;
 }
 
+/* SPRACHAUSWAHL */
+.language-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+  color: var(--text-dark);
+}
+
+.language-row select {
+  padding: 0.6rem 1rem;
+  font-size: 1.1rem;
+  border-radius: 999px;
+  border: 2px solid var(--accent-light);
+  background: white;
+  color: var(--text-dark);
+  outline: none;
+  cursor: pointer;
+}
+
+.language-row select:focus {
+  border-color: var(--header);
+}
+
 button {
   background: var(--accent);
   color: white;
