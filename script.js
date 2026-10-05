@@ -397,7 +397,7 @@ function renderStatus() {
 // Level-Aufstieg (Animation)
 // =========================================================
 
-const CONFETTI_COLORS = ["#2563eb", "#3b82f6", "#16a34a", "#facc15", "#f97316", "#ec4899"];
+const CONFETTI_COLORS = ["#5c2e18", "#98501f", "#bd7937", "#476b3a", "#d99a32"];
 
 function showLevelUp(level) {
   el.levelupTitle.textContent = "Level " + level + "!";
