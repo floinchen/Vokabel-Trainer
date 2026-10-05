@@ -72,6 +72,18 @@ body {
   overflow-y: auto;
 }
 
+#start-screen .content {
+  justify-content: flex-start;
+  padding-top: 1.25rem;
+}
+
+#language-title {
+  max-width: 100%;
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  line-height: 1.2;
+}
+
 h2 {
   font-size: 2.4rem;
   margin-bottom: 1rem;
@@ -92,6 +104,42 @@ p.small {
 
 p.small a {
   color: var(--accent);
+}
+
+.name-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.name-form label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.name-input {
+  width: 320px;
+  max-width: 100%;
+  padding: 0.9rem 1.2rem;
+  border: 2px solid var(--accent-light);
+  border-radius: 999px;
+  background: #fffdf7;
+  color: var(--text-dark);
+  font-size: 1.2rem;
+  outline: none;
+}
+
+.name-input:focus {
+  border-color: var(--header);
+  box-shadow: 0 0 0 3px rgba(152, 80, 31, 0.18);
+}
+
+.form-message {
+  min-height: 1.5rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.95rem;
 }
 
 /* SPRACHAUSWAHL (Flaggen-Buttons) */

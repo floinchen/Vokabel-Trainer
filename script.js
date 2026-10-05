@@ -18,6 +18,7 @@ const FEEDBACK_DELAY  = 1000; // Anzeigedauer der Rückmeldung bei richtiger Ant
 const SOLUTION_DELAY  = 4000; // Anzeigedauer der Lösung bei falscher Antwort (ms)
 const LEVELUP_DELAY   = 2800; // Anzeigedauer der Level-Animation (ms)
 const FLAG_URL        = "https://flagcdn.com/"; // Flaggenbilder (kostenlos, ohne Key)
+const PLAYER_DATA_KEY = "vokabeltrainer.player";
 
 // ---------- Lernsprachen ----------
 // label = Text unter der Flagge, name = Anzeige im Spiel ("ins Englische"),
@@ -56,6 +57,7 @@ const vocabulary = WORDS.flatMap((words, level) =>
 );
 const translationCache = new Map(); // "langpair:wort" -> Liste von Übersetzungen
 const state = {
+  playerName: "",
   language: "en",             // gewählte Lernsprache (Schlüssel aus LANGUAGES)
   answers: [],                // richtige Übersetzungen der aktuellen Vokabel
   points: 0,
@@ -71,10 +73,14 @@ const state = {
 // ---------- DOM-Elemente ----------
 const $ = (id) => document.getElementById(id);
 const el = {
+  nameForm:    $("name-form"),
+  nameInput:   $("name-input"),
+  nameMessage: $("name-message"),
   startBtn:    $("start-btn"),
   retryBtn:    $("retry-btn"),
   restartBtn:  $("restart-btn"),
   langGrid:    $("language-grid"),
+  languageTitle: $("language-title"),
   intro:       $("intro-text"),
   levelHeader: $("level-header"),
   word:        $("word"),
@@ -401,9 +407,10 @@ const CONFETTI_COLORS = ["#5c2e18", "#98501f", "#bd7937", "#476b3a", "#d99a32"];
 
 function showLevelUp(level) {
   el.levelupTitle.textContent = "Level " + level + "!";
+  const greeting = state.playerName ? "Super, " + state.playerName + "! " : "Super! ";
   el.levelupText.textContent = level >= MAX_LEVEL
-    ? "Du hast alle Level geschafft!"
-    : "Weiter so – jetzt wird's schwieriger!";
+    ? greeting + "Du hast alle Level geschafft!"
+    : greeting + "Du bist ein Level aufgestiegen.";
 
   // Konfetti erzeugen
   el.confetti.innerHTML = "";
@@ -462,6 +469,29 @@ function startGame() {
 // =========================================================
 // Event-Listener
 // =========================================================
+
+el.nameForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const name = el.nameInput.value.trim();
+  if (!name) {
+    el.nameMessage.textContent = "Bitte gib deinen Namen ein.";
+    el.nameInput.focus();
+    return;
+  }
+
+  try {
+    localStorage.setItem(PLAYER_DATA_KEY, JSON.stringify({ name: name }));
+  } catch (error) {
+    console.error("Name konnte nicht gespeichert werden:", error);
+    el.nameMessage.textContent = "Der Name konnte im Browser nicht gespeichert werden.";
+    return;
+  }
+
+  state.playerName = name;
+  el.languageTitle.textContent = "Welche Sprache möchtest du heute lernen, " + name + "?";
+  el.nameMessage.textContent = "";
+  showScreen("start-screen");
+});
 
 el.startBtn.addEventListener("click", startGame);
 
@@ -526,6 +556,21 @@ function setLanguage(lang) {
 }
 
 // ---------- Initialisierung ----------
+try {
+  const savedPlayer = localStorage.getItem(PLAYER_DATA_KEY);
+  if (savedPlayer) {
+    const playerData = JSON.parse(savedPlayer);
+    if (typeof playerData.name !== "string") {
+      throw new Error("Gespeicherte Namensdaten sind ungültig.");
+    }
+    state.playerName = playerData.name;
+    el.nameInput.value = playerData.name;
+    el.languageTitle.textContent = "Welche Sprache möchtest du heute lernen, " + playerData.name + "?";
+  }
+} catch (error) {
+  console.error("Gespeicherter Name konnte nicht geladen werden:", error);
+  el.nameMessage.textContent = "Der gespeicherte Name konnte nicht geladen werden. Bitte gib ihn erneut ein.";
+}
 renderLanguageButtons();
 setLanguage(state.language);
 renderStatus();

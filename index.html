@@ -7,11 +7,27 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Startbildschirm -->
-  <div id="start-screen" class="screen active">
+  <!-- Willkommensbildschirm -->
+  <div id="welcome-screen" class="screen active">
     <div class="header">Vokabeltrainer</div>
     <div class="content">
       <h2>Willkommen!</h2>
+      <p>Wie heißt du?</p>
+      <form id="name-form" class="name-form">
+        <label for="name-input">Dein Name</label>
+        <input type="text" id="name-input" class="name-input" maxlength="40"
+               autocomplete="name" required />
+        <button type="submit">Speichern</button>
+      </form>
+      <p id="name-message" class="form-message" role="status"></p>
+    </div>
+  </div>
+
+  <!-- Sprachauswahl -->
+  <div id="start-screen" class="screen">
+    <div class="header">Vokabeltrainer</div>
+    <div class="content">
+      <h2 id="language-title">Welche Sprache möchtest du heute lernen?</h2>
       <p id="intro-text">Übersetze die deutschen Begriffe ins Englische und steigere dein Level.</p>
 
       <div class="language-label">Ich möchte lernen:</div>
