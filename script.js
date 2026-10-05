@@ -1,12 +1,14 @@
 /* =========================================================
    Vokabeltrainer – Spiellogik
-   Die deutschen Wörter stehen pro Level in WORDS, die
+   Die deutschen Wörter werden aus "vokabeln.csv" geladen
+   (Format: level;deutsch), die
    Übersetzungen in die gewählte Sprache kommen live von der
    kostenlosen MyMemory-API (https://mymemory.translated.net,
    ohne API-Key)
    ========================================================= */
 
 // ---------- Konstanten ----------
+const CSV_FILE        = "vokabeln.csv";
 const API_URL         = "https://api.mymemory.translated.net/get";
 const POINTS_PER_WORD = 10;   // FR-06
 const POINTS_PER_LEVEL = 100; // FR-07
@@ -35,26 +37,8 @@ const LANGUAGES = {
   tr: { label: "Türkisch",       name: "Türkische",       flag: "tr", articles: ["bir"] }
 };
 
-// ---------- Wortlisten (Index = Level) ----------
-const WORDS = [
-  ["Haus", "Hund", "Katze", "Baum", "Buch", "Wasser", "Sonne", "Tisch", "Auto", "Apfel",
-   "Milch", "Rot", "Mutter", "Vater", "Schule"],
-  ["Fenster", "Stuhl", "Schlüssel", "Vogel", "Zug", "Wolke", "Brücke", "Küche", "Pferd", "Straße",
-   "Geschenk", "Freund", "Frühstück", "Kirche", "Himmel"],
-  ["Flughafen", "Rechnung", "Nachbar", "Wissen", "Erfahrung", "Gesundheit", "Umwelt", "Wetter",
-   "Zahnarzt", "Versuch", "Gebäude", "Wettbewerb", "Geschwindigkeit", "Unterricht", "Verkehr"],
-  ["Entscheidung", "Verantwortung", "Gleichgewicht", "Herausforderung", "Zuverlässigkeit",
-   "Anforderung", "Vertrauen", "Beziehung", "Voraussetzung", "Wahrscheinlichkeit", "Gewissen",
-   "Bewerbung", "Schwierigkeit", "Vorurteil", "Nachhaltigkeit"],
-  ["Eichhörnchen", "Rücksichtslos", "Gleichgültigkeit", "Beharrlichkeit", "Zweideutig",
-   "Unentbehrlich", "Vergänglichkeit", "Gewährleistung", "Selbstgefällig", "Zwangsläufig",
-   "Verschwiegenheit", "Glaubwürdigkeit", "Beeinträchtigung", "Schadenfreude", "Unverzichtbar"]
-];
-
 // ---------- Spielzustand ----------
-const vocabulary = WORDS.flatMap((words, level) =>
-  words.map((german) => ({ id: level + ":" + german, level: level, german: german }))
-);
+let vocabulary = [];          // deutsche Wörter aus der CSV ({ id, level, german })
 const translationCache = new Map(); // "langpair:wort" -> Liste von Übersetzungen
 const state = {
   playerName: "",
@@ -77,6 +61,8 @@ const el = {
   nameInput:   $("name-input"),
   nameMessage: $("name-message"),
   startBtn:    $("start-btn"),
+  csvFallback: $("csv-fallback"),
+  csvInput:    $("csv-input"),
   retryBtn:    $("retry-btn"),
   restartBtn:  $("restart-btn"),
   langGrid:    $("language-grid"),
@@ -102,6 +88,68 @@ const el = {
   levelupText: $("levelup-text"),
   confetti:    $("confetti")
 };
+
+// =========================================================
+// Data Handling (CSV mit den deutschen Wörtern)
+// =========================================================
+
+/** Wandelt den CSV-Text (level;deutsch) in ein Array von Vokabel-Objekten um. */
+function parseCSV(text) {
+  const lines = text
+    .replace(/^﻿/, "")       // BOM entfernen (z. B. aus Excel)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+
+  const result = [];
+  // Zeile 0 = Kopfzeile (level;deutsch)
+  for (let i = 1; i < lines.length; i++) {
+    const parts = lines[i].split(";");
+    if (parts.length < 2) continue;
+
+    const level  = parseInt(parts[0], 10);
+    const german = parts[1].trim();
+    if (isNaN(level) || german === "") continue;
+
+    result.push({ id: level + ":" + german, level: level, german: german });
+  }
+  return result;
+}
+
+/** Lädt die CSV automatisch (funktioniert über einen lokalen Webserver). */
+async function loadVocabulary() {
+  try {
+    const response = await fetch(CSV_FILE, { cache: "no-store" });
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    setVocabulary(parseCSV(await response.text()));
+  } catch (err) {
+    // Beim Öffnen per Doppelklick (file://) blockiert der Browser fetch –
+    // dann kann die CSV manuell ausgewählt werden.
+    console.warn("CSV konnte nicht automatisch geladen werden:", err);
+    el.startBtn.textContent = "Spiel starten";
+    el.csvFallback.classList.remove("hidden");
+  }
+}
+
+/** Manuelle Auswahl der CSV-Datei über das Datei-Eingabefeld. */
+el.csvInput.addEventListener("change", () => {
+  const file = el.csvInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => setVocabulary(parseCSV(reader.result));
+  reader.readAsText(file, "UTF-8");
+});
+
+function setVocabulary(list) {
+  if (list.length === 0) {
+    alert("Die CSV-Datei enthält keine gültigen Vokabeln.");
+    return;
+  }
+  vocabulary = list;
+  el.csvFallback.classList.add("hidden");
+  el.startBtn.disabled = false;
+  el.startBtn.textContent = "Spiel starten";
+}
 
 // =========================================================
 // Data Handling (Wörterbuch-API)
@@ -574,3 +622,4 @@ try {
 renderLanguageButtons();
 setLanguage(state.language);
 renderStatus();
+loadVocabulary();

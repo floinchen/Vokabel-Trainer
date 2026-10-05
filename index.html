@@ -34,7 +34,14 @@
       <!-- Flaggen-Buttons werden in script.js aus LANGUAGES erzeugt -->
       <div id="language-grid" class="language-grid"></div>
 
-      <button id="start-btn">Spiel starten</button>
+      <button id="start-btn" disabled>Vokabeln werden geladen...</button>
+
+      <!-- Fallback, falls die CSV nicht automatisch geladen werden kann (z. B. bei file://) -->
+      <div id="csv-fallback" class="csv-fallback hidden">
+        <p class="small">Die Datei <strong>vokabeln.csv</strong> konnte nicht automatisch geladen werden.<br />
+          Bitte wähle sie manuell aus:</p>
+        <input type="file" id="csv-input" accept=".csv" />
+      </div>
       <p class="small">Übersetzungen von der kostenlosen
         <a href="https://mymemory.translated.net" target="_blank" rel="noopener">MyMemory</a>-API
         (Internetverbindung nötig)</p>

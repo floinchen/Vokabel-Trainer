@@ -344,6 +344,11 @@ button:disabled {
   transition: width 0.5s ease;
 }
 
+/* Fallback: CSV manuell auswählen (z. B. bei file://) */
+.csv-fallback {
+  margin-top: 1rem;
+}
+
 /* LEVEL-AUFSTIEG */
 .hidden {
   display: none !important;
